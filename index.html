@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta name="galerie" content="publique">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Galerie des cartes</title>
+<link rel="stylesheet" href="cartes.css">
+<style>
+  body { margin:0; padding:24px 16px 48px; background:#14111c; color:#f3eefc; font-family:system-ui, -apple-system, "Segoe UI", sans-serif; }
+  h1 { font-size:24px; text-align:center; margin:0 0 6px; }
+  .resume { text-align:center; color:#a99cc2; font-size:14px; margin-bottom:28px; }
+  h2 { font-size:18px; margin:34px 0 14px; text-align:center; }
+  h2 small { color:#a99cc2; font-weight:400; }
+  .grille { display:flex; flex-wrap:wrap; gap:24px; justify-content:center; align-items:flex-start; }
+  #grilleVerso { align-items:center; }
+  .case { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .possesseurs { font-size:13px; color:#c9b6ff; background:#1f1a2c; border:1px solid #352c4a; border-radius:20px; padding:3px 12px; cursor:help; }
+  .possesseurs.aucun { color:#6f6585; cursor:default; }
+  .noms { font-size:13px; color:#c9b6ff; max-width:240px; text-align:center; line-height:1.4; }
+  body.seules .possesseurs { display:none; } /* verso centré sur la hauteur du booster, plus grand que lui */
+  .filtres { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
+    padding:10px; margin:0 auto 8px; max-width:900px; background:rgba(20,17,28,.92); backdrop-filter:blur(6px); border-radius:12px; }
+  .filtres select { background:#1f1a2c; color:#f3eefc; border:1px solid #352c4a; border-radius:8px; padding:7px 10px; font-size:14px; max-width:100%; }
+  .filtres button { background:#352c4a; color:#f3eefc; border:none; border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; }
+  .filtres .compte { color:#a99cc2; font-size:14px; }
+  [hidden] { display:none !important; }
+  .vide { text-align:center; color:#a99cc2; margin-top:40px; }
+  body.seules .filtres,
+  body.seules h1, body.seules .resume, body.seules h2, body.seules .grille:first-of-type { display:none; }
+  /* Collection d'un joueur (?joueur=pseudo) : ses cartes en couleur, les autres éteintes */
+  .filtres input { background:#1f1a2c; color:#f3eefc; border:1px solid #352c4a; border-radius:8px; padding:7px 10px; font-size:14px; width:150px; }
+  .case.manquante .carte { filter:grayscale(1) brightness(.4); }
+  .possesseurs.possedee { color:#ffd76a; border-color:#6b5a22; cursor:default; }
+  .resume a { color:#c9b6ff; }
+  /* Galerie publique (GitHub Pages) : sans les filtres internes */
+  body.publique #fVisuel, body.publique #fTexte { display:none; }
+  .carte-masquee { cursor:default; }
+  /* Cartes hors de l'écran : ni dessinées ni animées (sinon toute la page est redessinée à chaque image et ça saccade).
+     Activé une fois les textes mesurés ; padding/marge négative pour ne pas couper le halo des cartes. */
+  body.allegee .case { content-visibility:auto; contain-intrinsic-size:auto 400px auto 540px;
+    padding:80px; margin:-80px; pointer-events:none; }
+  body.allegee .case > * { pointer-events:auto; }
+  html { overflow-x:hidden; } /* cette marge ne doit pas faire déborder la page sur les côtés */
+  /* Cartes immobiles, seule celle sous la souris s'anime (trop d'effets animés à la fois font ramer la page ; la carte agrandie reste animée) */
+  #contenu .carte:not(:hover), #contenu .carte:not(:hover) *, #contenu .carte:not(:hover) *::before, #contenu .carte:not(:hover) *::after,
+  #contenu .paquet:not(:hover), #contenu .paquet:not(:hover) *, #contenu .paquet:not(:hover) *::before, #contenu .paquet:not(:hover) *::after
+    { animation-play-state:paused !important; }
+  body.seules #contenu { display:flex; flex-wrap:wrap; gap:36px; justify-content:center; padding-top:20px; }
+</style>
+</head>
+<body>
+  <h1 id="titre">Galerie</h1>
+  <div class="resume" id="resume"></div>
+  <div class="filtres" id="filtres">
+    <input id="fJoueur" list="joueurs" placeholder="Pseudo Twitch" aria-label="Voir la collection d'un joueur" autocomplete="off">
+    <datalist id="joueurs"></datalist>
+    <select id="fPossede" aria-label="Cartes possédées" hidden><option value="">Ses cartes</option><option value="non">Cartes manquantes</option><option value="toutes">Toutes les cartes</option></select>
+    <select id="fDecouverte" aria-label="Cartes découvertes" hidden><option value="">Découvertes ou non</option><option value="oui">Cartes découvertes</option><option value="non">À découvrir</option></select>
+    <select id="fCategorie" aria-label="Catégorie"></select>
+    <select id="fRarete" aria-label="Rareté"></select>
+    <select id="fFamille" aria-label="Famille"></select>
+    <select id="fVisuel" aria-label="Visuel"></select>
+    <select id="fTexte" aria-label="Texte"><option value="">Tous les textes</option><option value="reduit">Texte réduit</option></select>
+    <button id="fEffacer">Tout afficher</button>
+    <span class="compte" id="fCompte"></span>
+  </div>
+  <div id="contenu"></div>
+  <div class="vide" id="vide" hidden>Aucune carte pour ces filtres.</div>
+<script type="module">
+  import { recto, verso, booster } from './carte.js';
+  import { agrandir } from './loupe.js';
+  // Galerie publique (galerie-publique.mjs) : données figées dans cartes.json, cartes cachées marquées « masquee »
+  const PUBLIQUE = !!document.querySelector('meta[name="galerie"][content="publique"]');
+  if (PUBLIQUE) document.body.classList.add('publique');
+  const d = await fetch(PUBLIQUE ? 'cartes.json' : '/api/cartes').then(r => r.json());
+  const total = d.cartes.length;
+  // ?id=antho,fart : seulement ces cartes ; ?largeur=360 : taille des cartes ;
+  // ?graine=1 : étoiles placées toujours pareil (captures image par image)
+  const params = new URLSearchParams(location.search);
+  if (params.get('graine')) {
+    let s = Number(params.get('graine')) >>> 0;
+    Math.random = () => { s = (s + 0x6D2B79F5) >>> 0; let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  if (params.get('id')) {
+    const ids = params.get('id').split(',');
+    d.cartes = d.cartes.filter(c => ids.includes(c.id));
+    document.body.classList.add('seules');
+  }
+  const largeur = Math.min(Number(params.get('largeur')) || 240, innerWidth - 32);
+  // ?joueur=pseudo : la collection d'un joueur (ses cartes en couleur, les autres éteintes), d'après « possesseurs »
+  const joueurs = new Map(); // pseudo en minuscules → { pseudo, cartes: { id: exemplaires } }
+  for (const [id, l] of Object.entries(d.possesseurs || {})) for (const [p, n] of l) {
+    if (!joueurs.has(p.toLowerCase())) joueurs.set(p.toLowerCase(), { pseudo: p, cartes: {} });
+    joueurs.get(p.toLowerCase()).cartes[id] = n;
+  }
+  const nbMasquees = d.cartes.filter(c => c.masquee).length; // galerie publique : cartes que personne n'a encore (« ??? »)
+  const demande = (params.get('joueur') || '').trim().replace(/^@/, '');
+  const moi = demande ? joueurs.get(demande.toLowerCase()) || { pseudo: demande, cartes: {} } : null;
+  const echapper = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  document.getElementById('titre').textContent = moi ? `${d.nomJeu} : collection de ${moi.pseudo}` : d.nomJeu;
+  if (moi) document.title = `Collection de ${moi.pseudo}`;
+  const nbMoi = moi ? d.cartes.filter(c => moi.cartes[c.id]).length : 0;
+  const nbSecretes = moi ? (d.secretes || []).filter(c => moi.cartes[c.id]).length : 0;
+  document.getElementById('resume').innerHTML = moi
+    ? (nbMoi ? `<b>${nbMoi} / ${d.cartes.length}</b> cartes` + (nbSecretes ? ` · 🏆 ${nbSecretes} carte${nbSecretes > 1 ? 's' : ''} secrète${nbSecretes > 1 ? 's' : ''}` : '')
+        : `${echapper(moi.pseudo)} n'a pas encore de carte (la galerie est mise à jour à la fin de chaque live)`)
+      + ` · <a href="${location.pathname}">Toutes les cartes</a>`
+    : `Saison ${d.saison} · ${d.cartes.length} cartes`
+      + (nbMasquees ? ` · <b>${d.cartes.length - nbMasquees}</b> découverte${d.cartes.length - nbMasquees > 1 ? 's' : ''}` : '')
+      + (PUBLIQUE ? '' : ` · <a href="/probabilites">Probabilités</a>`);
+  const contenu = document.getElementById('contenu');
+
+  const h = document.createElement('h2'); h.textContent = 'Booster et verso'; h.id = 'titreVerso';
+  const g = document.createElement('div'); g.className = 'grille'; g.id = 'grilleVerso';
+  g.append(booster({ largeur, nomJeu: d.nomJeu, nbCartes: d.cartesParBooster }), verso({ largeur, nomJeu: d.nomJeu }));
+  contenu.append(h, g);
+
+  // Une section par rareté ; les cartes secrètes (bonus de famille, jamais tirées, rareté « Secrète ») juste au-dessus des Légendaires ;
+  // les cartes sont créées une fois, les filtres ne font que les masquer
+  const SECRETE = 'Secrète';
+  const secretes = d.secretes || [];
+  const toutes = [...d.cartes, ...secretes];
+  const ordre = [...d.raretes].reverse();
+  ordre.splice(ordre.indexOf('Légendaire'), 0, SECRETE);
+  const sections = [];
+  for (const r of ordre) {
+    const liste = toutes.filter(c => c.rarete === r);
+    if (!liste.length) continue;
+    const titre = document.createElement('h2');
+    const grille = document.createElement('div'); grille.className = 'grille';
+    // Sous chaque carte : combien de joueurs l'ont, leurs pseudos en infobulle (utile pour les échanges)
+    const cartes = liste.map(c => {
+      const e = document.createElement('div'); e.className = 'case';
+      const l = d.possesseurs?.[c.id] || [];
+      const b = document.createElement('div'); b.className = 'possesseurs' + (l.length ? '' : ' aucun');
+      b.textContent = l.length ? `👥 ${l.length} joueur${l.length > 1 ? 's' : ''}` : 'Personne ne l’a encore';
+      if (l.length) b.title = l.map(([p, n]) => n > 1 ? `${p} ×${n}` : p).join('\n');
+      // Au toucher (téléphone, pas d'infobulle) : les pseudos s'affichent sous le badge
+      const noms = document.createElement('div'); noms.className = 'noms'; noms.hidden = true;
+      noms.textContent = l.map(([p, n]) => n > 1 ? `${p} ×${n}` : p).join(' · ');
+      if (l.length) b.onclick = () => { noms.hidden = !noms.hidden; };
+      if (moi) { // collection d'un joueur : le badge dit s'il l'a, et en combien d'exemplaires
+        const n = moi.cartes[c.id] || 0;
+        e.classList.toggle('manquante', !n);
+        b.className = 'possesseurs ' + (n ? 'possedee' : 'aucun');
+        b.textContent = n > 1 ? `✔ ×${n}` : n ? '✔ Possédée' : 'Manquante';
+        b.removeAttribute('title'); b.onclick = null;
+      }
+      const r = recto(c, { largeur, total });
+      if (c.masquee) r.classList.add('carte-masquee');
+      else { r.classList.add('agrandissable'); r.onclick = () => agrandir(c, r, { total }); }
+      e.append(r, b, noms);
+      grille.appendChild(e);
+      return { c, e };
+    });
+    contenu.append(titre, grille);
+    sections.push({ r, titre, grille, cartes });
+  }
+
+  // ---- Filtres (gardés dans l'adresse : ?categorie=Lieu&rarete=Rare&famille=Kukoro&visuel=sans) ----
+  const $ = id => document.getElementById(id);
+  const compter = (cle, v) => (cle === 'rarete' ? toutes : d.cartes).filter(c => (c[cle] || '') === v).length;
+  const options = (sel, tous, valeurs, cle) => {
+    sel.innerHTML = `<option value="">${tous}</option>` + valeurs.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v} (${compter(cle, v)})</option>`).join('');
+  };
+  const trier = l => [...new Set(l)].sort((a, b) => a.localeCompare(b, 'fr'));
+  options($('fCategorie'), 'Toutes les catégories', trier(d.cartes.map(c => c.categorie).filter(Boolean)), 'categorie');
+  options($('fRarete'), 'Toutes les raretés', ordre.filter(r => compter('rarete', r)), 'rarete');
+  options($('fFamille'), 'Toutes les familles', trier(d.cartes.map(c => c.famille).filter(Boolean)), 'famille');
+  $('fFamille').insertAdjacentHTML('beforeend', `<option value="-">Sans famille (${d.cartes.filter(c => !c.famille).length})</option>`);
+  const nbVisuel = d.cartes.filter(c => c.illustration).length;
+  $('fVisuel').innerHTML = `<option value="">Avec ou sans visuel</option><option value="avec">Avec visuel (${nbVisuel})</option><option value="sans">Sans visuel (${d.cartes.length - nbVisuel})</option>`;
+
+  // Joueur : champ de recherche (pseudos proposés) ; par défaut seules ses cartes sont affichées
+  $('joueurs').innerHTML = [...joueurs.values()].map(j => `<option value="${echapper(j.pseudo)}">`).join('');
+  $('fJoueur').value = moi ? moi.pseudo : '';
+  $('fJoueur').onchange = () => {
+    const p = new URLSearchParams(location.search), v = $('fJoueur').value.trim().replace(/^@/, '');
+    v ? p.set('joueur', v) : p.delete('joueur');
+    p.delete('possede');
+    location.search = p.toString();
+  };
+  $('fPossede').hidden = !moi;
+  $('fDecouverte').hidden = !nbMasquees;
+  $('fDecouverte').options[1].textContent = `Cartes découvertes (${d.cartes.length - nbMasquees})`;
+  $('fDecouverte').options[2].textContent = `À découvrir (${nbMasquees})`;
+  if (moi && !nbMoi) $('fPossede').value = 'toutes';
+  const CHAMPS = { categorie: 'fCategorie', rarete: 'fRarete', famille: 'fFamille', visuel: 'fVisuel', texte: 'fTexte', possede: 'fPossede', decouverte: 'fDecouverte' };
+  for (const [k, id] of Object.entries(CHAMPS)) if (params.get(k)) $(id).value = params.get(k);
+
+  let mesure = false; // « Texte réduit » ne filtre qu'une fois les descriptions mises à leur taille
+  function filtrer() {
+    const f = Object.fromEntries(Object.entries(CHAMPS).map(([k, id]) => [k, $(id).value]));
+    const garder = c => (!f.categorie || c.categorie === f.categorie) && (!f.rarete || c.rarete === f.rarete)
+      && (!f.famille || (f.famille === '-' ? !c.famille : c.famille === f.famille))
+      && (!f.visuel || (f.visuel === 'avec') === !!c.illustration)
+      && (!f.decouverte || (f.decouverte === 'oui') === !c.masquee)
+      && (!moi || f.possede === 'toutes' || (f.possede === 'non') === !moi.cartes[c.id]);
+    let n = 0;
+    for (const s of sections) {
+      let k = 0;
+      for (const { c, e } of s.cartes) { const ok = garder(c) && (!f.texte || !mesure || !!e.querySelector('.desc.reduite')); e.style.display = ok ? '' : 'none'; if (ok) k++; }
+      n += k;
+      s.titre.hidden = s.grille.hidden = !k;
+      s.titre.innerHTML = `${s.r === SECRETE ? 'Secrètes' : s.r} <small>· ${k}${k < s.cartes.length ? ' / ' + s.cartes.length : ''} carte${k > 1 ? 's' : ''} · `
+        + (s.r === SECRETE ? 'gagnées en complétant leur famille, jamais dans les boosters' : `${String(d.chances[s.r]).replace('.', ',')} % par carte tirée`) + '</small>';
+    }
+    // Collection d'un joueur : « Toutes les cartes » est l'état sans filtre, et le booster n'est pas montré
+    const actif = Object.entries(f).some(([k, v]) => k === 'possede' ? moi && v !== 'toutes' : v);
+    $('titreVerso').hidden = $('grilleVerso').hidden = actif || !!moi;
+    $('fEffacer').hidden = !actif;
+    $('fCompte').textContent = actif ? `${n} / ${d.cartes.length + secretes.length} cartes` : '';
+    $('vide').hidden = n > 0;
+    const p = new URLSearchParams(location.search);
+    for (const [k, v] of Object.entries(f)) v ? p.set(k, v) : p.delete(k);
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+  }
+  for (const id of Object.values(CHAMPS)) $(id).onchange = filtrer;
+  $('fEffacer').onclick = () => { for (const id of Object.values(CHAMPS)) $(id).value = ''; if (moi) $('fPossede').value = 'toutes'; filtrer(); };
+  filtrer();
+  // Descriptions écrites plus petit pour tenir dans la carte (à raccourcir dans le fichier) : comptées une fois les cartes mises en page
+  await Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 4000))]); // polices lentes : on n'attend pas plus de 4 s
+  await new Promise(r => setTimeout(r, 300));
+  mesure = true;
+  $('fTexte').options[1].textContent = `Texte réduit (${document.querySelectorAll('.desc.reduite').length})`;
+  document.body.classList.add('allegee');
+  if ($('fTexte').value) filtrer();
+</script>
+</body>
+</html>
