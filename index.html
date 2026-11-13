@@ -207,9 +207,9 @@
       s.titre.innerHTML = `${s.r === SECRETE ? 'Secrètes' : s.r} <small>· ${k}${k < s.cartes.length ? ' / ' + s.cartes.length : ''} carte${k > 1 ? 's' : ''} · `
         + (s.r === SECRETE ? 'gagnées en complétant leur famille, jamais dans les boosters' : `${String(d.chances[s.r]).replace('.', ',')} % par carte tirée`) + '</small>';
     }
-    // Collection d'un joueur : « Toutes les cartes » est l'état sans filtre, et le booster n'est pas montré
+    // Collection d'un joueur : « Toutes les cartes » est l'état sans filtre ; booster et verso montrés seulement dans la galerie locale
     const actif = Object.entries(f).some(([k, v]) => k === 'possede' ? moi && v !== 'toutes' : v);
-    $('titreVerso').hidden = $('grilleVerso').hidden = actif || !!moi;
+    $('titreVerso').hidden = $('grilleVerso').hidden = actif || !!moi || PUBLIQUE;
     $('fEffacer').hidden = !actif;
     $('fCompte').textContent = actif ? `${n} / ${d.cartes.length + secretes.length} cartes` : '';
     $('vide').hidden = n > 0;
