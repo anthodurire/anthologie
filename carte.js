@@ -138,7 +138,7 @@ export function recto(carte, { largeur = 300, total = null, s = carte.versionS }
 
   const bas = el('div', 'bas');
   bas.append(el('span', 'categorie', carte.categorie), el('span', 'pastille', secrete ? 'Secrète' : carte.rarete),
-             el('span', null, carte.rarete === 'Unique' ? 'Exemplaire unique' : carte.secrete ? 'Secrète' : `${s ? 'S ' : ''}${carte.numero}${total ? '/' + total : ''}`));
+             el('span', null, carte.rarete === 'Unique' ? 'Exemplaire unique' : carte.secrete ? 'Secrète' : `${carte.numero}${total ? '/' + total : ''}`));
   inn.appendChild(bas);
   if (s) inn.appendChild(el('div', 's-grave'));
 
