@@ -12,6 +12,7 @@ const nomFichier = carte => `${String(carte.nom || 'carte').replace(/[\\/:*?"<>|
 // PNG de chaque image, gardés le temps de la visite (la loupe le prépare dès l'ouverture : le partage sur téléphone
 // doit partir tout de suite après le toucher, sans attendre un téléchargement)
 const cache = new Map();
+const prets = new Map(); // adresse → PNG déjà converti (copié tel quel : rien à attendre au moment du clic)
 export function png(carte) {
   const src = imageDe(carte);
   if (!src) return Promise.reject(new Error('Image de la carte indisponible'));
@@ -23,7 +24,7 @@ export function png(carte) {
         c.getContext('2d').drawImage(bmp, 0, 0);
         c.toBlob(b => b ? resolve(b) : reject(new Error('Conversion impossible')), 'image/png');
       }));
-    p.catch(() => cache.delete(src));
+    p.then(b => prets.set(src, b), () => cache.delete(src));
     cache.set(src, p);
   }
   return cache.get(src);
@@ -33,14 +34,24 @@ const peutCopier = () => !!(navigator.clipboard?.write && window.ClipboardItem &
 const tactile = () => matchMedia('(pointer: coarse)').matches;
 const peutPartager = () => tactile() && !!navigator.canShare?.({ files: [new File([''], 'carte.png', { type: 'image/png' })] });
 
+const ecrire = contenu => navigator.clipboard.write([new ClipboardItem({ 'image/png': contenu })]);
 export async function copier(carte) {
+  const ok = () => message(tactile() ? 'Carte copiée ✔' : 'Carte copiée ✔ (colle-la avec Ctrl+V)');
+  let erreur;
   try {
-    // Safari : le ClipboardItem doit être créé tout de suite (dans le clic), avec la promesse de l'image
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png(carte) })]);
-    message(tactile() ? 'Carte copiée ✔' : 'Carte copiée ✔ (colle-la avec Ctrl+V)');
-  } catch {
-    message('Copie impossible ici : utilise « Enregistrer »', true);
-  }
+    // Image déjà prête : copiée directement. Sinon (Safari) le ClipboardItem est créé tout de suite, dans le clic,
+    // avec la promesse de l'image
+    await ecrire(prets.get(imageDe(carte)) || png(carte));
+    return ok();
+  } catch (e) { erreur = e; }
+  try { // second essai, l'image une fois prête (certains navigateurs refusent une image encore en préparation)
+    await ecrire(await png(carte));
+    return ok();
+  } catch (e) { erreur = e; }
+  console.warn('Copie de la carte impossible :', erreur);
+  message(erreur?.name === 'NotAllowedError'
+    ? 'Ton navigateur bloque la copie sur ce site (paramètres du site → Presse-papiers) : utilise « Enregistrer »'
+    : `Copie impossible (${erreur?.message || erreur}) : utilise « Enregistrer »`, true);
 }
 
 export async function enregistrer(carte) {
@@ -123,5 +134,5 @@ function message(texte, erreur = false) {
   document.body.appendChild(bulle);
   bulle.classList.remove('visible'); void bulle.offsetWidth; bulle.classList.add('visible');
   clearTimeout(minuteur);
-  minuteur = setTimeout(() => bulle.classList.remove('visible'), 2200);
+  minuteur = setTimeout(() => bulle.classList.remove('visible'), erreur ? 5000 : 2200);
 }
