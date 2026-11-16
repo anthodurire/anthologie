@@ -163,45 +163,17 @@ export function verso({ largeur = 300, nomJeu = 'Cartes de la commu' } = {}) {
   return c;
 }
 
-// Bord cranté (coupe des soudures) : n dents en haut ou en bas, encoches de déchirure en option
-function dents(n, cote) {
-  const pts = [];
-  for (let i = 0; i <= 2 * n; i++) {
-    const x = (i * 50 / n).toFixed(3) + '%';
-    pts.push(cote === 'haut' ? `${x} ${i % 2 ? '.45em' : '0'}` : `${x} ${i % 2 ? 'calc(100% - .45em)' : '100%'}`);
-  }
-  return cote === 'haut' ? pts : pts.reverse();
-}
-
-/** Booster : sachet alu soudé en haut et en bas, aux couleurs du verso. La languette se détache à l'ouverture. */
-export function booster({ largeur = 300, nomJeu = 'Cartes de la commu', nbCartes = 5 } = {}) {
+/** Booster : visuel du sachet (illustrations/booster-sachet.webp, « 5 cartes » écrit dans l'image).
+ *  La languette (jusqu'aux pointillés) se détache à l'ouverture. nbCartes n'est plus affiché : refaire le visuel s'il change. */
+export function booster({ largeur = 300, nomJeu = 'Cartes de la commu' } = {}) {
   const p = el('div', 'paquet');
   p.style.setProperty('--w', largeur + 'px');
-
+  p.setAttribute('role', 'img');
+  p.setAttribute('aria-label', `Booster ${nomJeu}`);
   const lang = el('div', 'languette');
-  lang.style.clipPath = `polygon(${[...dents(22, 'haut'), '100% 100%', '0 100%'].join(',')})`;
-  lang.append(el('div', 'sertissage'), el('div', 'lustre'));
-
+  lang.appendChild(el('div', 'lustre'));
   const corps = el('div', 'corps');
-  // Encoches de déchirure sur les côtés, juste sous la languette
-  corps.style.clipPath = `polygon(0 0,100% 0,100% .15em,calc(100% - .45em) .6em,100% 1.05em,${dents(22, 'bas').join(',')},0 1.05em,.45em .6em,0 .15em)`;
-  const logo = el('img', 'logo');
-  logo.src = 'illustrations/' + encodeURIComponent(LOGO);
-  logo.alt = nomJeu;
-  const gemmes = el('div', 'gemmes');
-  for (const r of Object.keys(COULEURS)) {
-    const g = el('i', r === 'Légendaire' ? 'arcenciel' : null); // arc-en-ciel comme la carte
-    g.style.setProperty('--c', COULEURS[r]); g.title = r; gemmes.appendChild(g);
-  }
-  const cartouche = el('div', 'cartouche');
-  cartouche.append(el('b', null, String(nbCartes)), el('span', null, nbCartes > 1 ? 'cartes' : 'carte'));
-  // Trois zones : « Booster » centré dans le vide du haut, le logo, les losanges et « 5 cartes » centrés dans le vide du bas
-  const centre = el('div', 'centre');
-  centre.append(el('div', 'halo'), logo, el('div', 'signature', '@anthodurire'));
-  const pied = el('div', 'pied');
-  pied.append(gemmes, cartouche);
-  corps.append(el('div', 'cadre'), el('div', 'etiquette', 'Booster'), centre, pied, el('div', 'sertissage bas'), el('div', 'lustre'));
-
+  corps.appendChild(el('div', 'lustre'));
   p.append(corps, lang);
   return p;
 }

@@ -234,63 +234,21 @@
 @keyframes carte-eclat { 0%,65%,100% { opacity:0; transform:scale(.1) rotate(0deg); } 78% { opacity:1; transform:scale(1) rotate(45deg); } 90% { opacity:.6; transform:scale(.6) rotate(80deg); } }
 @keyframes carte-glisse { to { background-position:250% 0; } }
 
-/* ---------- Booster (sachet alu soudé) ---------- */
+/* ---------- Booster : visuel du sachet (illustrations/booster-sachet.webp, 840 × 1400, fond transparent) ----------
+   Une seule image partagée entre la languette (haut, jusqu'aux pointillés à 10,8 %) et le corps : la languette part à l'ouverture */
 .paquet, .paquet * { box-sizing:border-box; }
-.paquet { --w:300px; width:var(--w); aspect-ratio:3/5; font-size:calc(var(--w) / 20); position:relative;
-          font-family:system-ui, -apple-system, "Segoe UI", sans-serif; filter:drop-shadow(0 .8em 1.4em rgba(0,0,0,.6)); }
-.paquet .languette, .paquet .corps { position:absolute; left:0; right:0; overflow:clip; /* clip : jamais défilable, même si le logo déborde */
-          background:radial-gradient(circle at 50% 40%,rgba(245,210,122,.16),transparent 55%),
-            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 4l2 8 8 2-8 2-2 8-2-8-8-2 8-2z' fill='%23f5d27a' fill-opacity='.08'/%3E%3C/svg%3E") 0 0/1.9em,
-            linear-gradient(160deg,#1a140a,#060504 55%,#140f07); }
+.paquet { --w:300px; width:var(--w); aspect-ratio:3/5; font-size:calc(var(--w) / 20); position:relative; filter:drop-shadow(0 .8em 1.4em rgba(0,0,0,.6)); }
+.paquet .languette, .paquet .corps { position:absolute; left:0; right:0; overflow:clip;
+          background:url(illustrations/booster-sachet.webp) 0 0 / 20em 33.333em no-repeat; }
 .paquet .languette { top:0; height:3.6em; z-index:2; }
-.paquet .corps { top:3.6em; bottom:0; display:flex; flex-direction:column; align-items:stretch; padding:1.2em 1.2em 3.6em; }
-/* Pointillés « ouvrir ici » au bas de la languette */
-.paquet .languette::before { content:""; position:absolute; left:.6em; right:.6em; bottom:.1em; border-bottom:.1em dashed rgba(245,210,122,.55); z-index:3; }
-/* Volume du sachet : bords assombris, pli lumineux, ombres près des soudures */
-.paquet .languette::after, .paquet .corps::after { content:""; position:absolute; inset:0; pointer-events:none; z-index:4;
-          background:linear-gradient(90deg,rgba(0,0,0,.65),transparent 9%,rgba(255,255,255,.1) 20%,transparent 32%,transparent 78%,rgba(255,255,255,.05) 88%,rgba(0,0,0,.65)); }
-.paquet .corps::after { background:linear-gradient(90deg,rgba(0,0,0,.65),transparent 9%,rgba(255,255,255,.1) 20%,transparent 32%,transparent 78%,rgba(255,255,255,.05) 88%,rgba(0,0,0,.65)),
-          linear-gradient(180deg,rgba(0,0,0,.35),transparent 6%,transparent 86%,rgba(0,0,0,.45) 90%,transparent 91%); }
-/* Soudure crantée : alu doré strié */
-.paquet .sertissage { position:absolute; left:0; right:0; top:0; height:2.5em; z-index:2;
-          background:repeating-linear-gradient(90deg,rgba(255,255,255,.4) 0 .07em,transparent .07em .3em,rgba(0,0,0,.35) .3em .38em),
-                     linear-gradient(180deg,#7a5418,#f5d27a 35%,#fff1c2 50%,#c79a3a 72%,#6e4c14);
-          box-shadow:0 .12em .25em rgba(0,0,0,.6); }
-.paquet .sertissage.bas { top:auto; bottom:0; box-shadow:0 -.12em .25em rgba(0,0,0,.6);
-          background:repeating-linear-gradient(90deg,rgba(255,255,255,.4) 0 .07em,transparent .07em .3em,rgba(0,0,0,.35) .3em .38em),
-                     linear-gradient(0deg,#7a5418,#f5d27a 35%,#fff1c2 50%,#c79a3a 72%,#6e4c14); }
-/* Double filet doré, comme sur le verso */
-.paquet .cadre { position:absolute; left:.9em; right:.9em; top:.9em; bottom:3.3em; border:.1em solid rgba(245,210,122,.6); border-radius:.6em;
-                 box-shadow:0 0 0 .25em transparent, 0 0 0 .3em rgba(245,210,122,.3); pointer-events:none; }
-.paquet .halo { position:absolute; left:50%; top:45%; width:95%; aspect-ratio:1/1; transform:translate(-50%,-50%); border-radius:50%;
-                background:radial-gradient(circle,rgba(245,190,90,.3),transparent 65%); animation:verso-halo 3.5s ease-in-out infinite alternate; }
-.paquet .etiquette, .paquet .logo, .paquet .signature, .paquet .gemmes, .paquet .cartouche { position:relative; z-index:2; flex:none; }
-/* Les zones du haut et du bas se partagent le vide autour du logo, leur contenu y est centré */
-.paquet .etiquette, .paquet .pied { flex:1 1 0; display:flex; align-items:center; justify-content:center; }
-.paquet .pied { flex-direction:column; gap:.7em; }
-.paquet .centre { position:relative; flex:none; display:flex; flex-direction:column; align-items:center; }
-.paquet .etiquette { font-family:"Fondamento", cursive; font-size:1.25em; letter-spacing:.35em; text-transform:uppercase; color:#f5d27a;
-                     padding-left:.35em; text-shadow:0 0 .5em rgba(245,210,122,.5); }
-.paquet .etiquette { line-height:1; }
-.paquet .etiquette::before, .paquet .etiquette::after { content:"✦"; font-size:.6em; margin:0 .6em; opacity:.8; }
-.paquet .logo { width:112%; aspect-ratio:2/1; object-fit:cover; object-position:50% 45%; margin:-.4em 0;
-                mix-blend-mode:lighten; -webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 50%,#000 75%,transparent);
-                mask-image:radial-gradient(ellipse 60% 60% at 50% 50%,#000 75%,transparent); }
-.paquet .signature { font-family:"Fondamento", cursive; font-size:.85em; color:#f5d27a; opacity:.85; }
-.paquet .gemmes { display:flex; gap:.45em; }
-.paquet .gemmes i { width:.6em; height:.6em; transform:rotate(45deg); background:var(--c); box-shadow:0 0 .4em var(--c); border:.05em solid rgba(0,0,0,.4); }
-.paquet .gemmes i.arcenciel { background:linear-gradient(135deg,#ff4d6d,#ffb84d,#fff04d,#4dff88,#4dd2ff,#8a4dff,#ff4dd2);
-                             box-shadow:0 0 .45em #ff4dd2; }
-.paquet .cartouche { display:flex; align-items:center; gap:.3em; line-height:1; padding:.45em 1.1em; border-radius:2em; color:#1b1306;
-                     background:linear-gradient(180deg,#fff1c2,#f5d27a 45%,#b98a2e); box-shadow:0 .15em .4em rgba(0,0,0,.6), inset 0 .08em 0 rgba(255,255,255,.7); }
-.paquet .cartouche b { font-size:1.3em; font-weight:900; }
-.paquet .cartouche span { font-size:.75em; font-weight:800; letter-spacing:.2em; text-transform:uppercase; }
-/* Reflet de l'alu qui passe : chaque partie porte un reflet à la taille du paquet entier (20em × 33.333em),
+.paquet .corps { top:3.6em; bottom:0; background-position:0 -3.6em; }
+/* Reflet qui passe, limité à la forme du sachet : chaque partie porte un reflet à la taille du paquet entier (20em × 33.333em),
    placé au même endroit, pour que la bande reste alignée entre languette et corps */
-.paquet .lustre { position:absolute; left:0; right:0; top:0; height:33.333em; overflow:hidden; pointer-events:none; z-index:5; mix-blend-mode:screen; }
+.paquet .lustre { position:absolute; left:0; right:0; top:0; height:33.333em; overflow:hidden; pointer-events:none; mix-blend-mode:screen;
+          -webkit-mask:url(illustrations/booster-sachet.webp) 0 0 / 100% 100% no-repeat; mask:url(illustrations/booster-sachet.webp) 0 0 / 100% 100% no-repeat; }
 .paquet .corps .lustre { top:-3.6em; }
 .paquet .lustre::after { content:""; position:absolute; top:-20%; bottom:-20%; width:30%; left:-60%; transform:skewX(-18deg);
-                         background:linear-gradient(100deg,transparent,rgba(255,240,200,.35),transparent); animation:carte-balayage 3s ease-in-out infinite; }
+                         background:linear-gradient(100deg,transparent,rgba(255,240,200,.3),transparent); animation:carte-balayage 3s ease-in-out infinite; }
 
 /* Loupe (loupe.js) : carte agrandie au centre de l'écran, sur un fond assombri */
 .loupe { position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; gap:18px; align-items:center; justify-content:center; cursor:zoom-out;
