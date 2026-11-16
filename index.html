@@ -70,7 +70,6 @@
 <script type="module">
   import { recto, verso, booster } from './carte.js';
   import { agrandir } from './loupe.js';
-  import { incliner } from './inclinaison.js';
   import { menuClicDroit } from './copie.js';
   // Galerie publique (galerie-publique.mjs) : données figées dans cartes.json, cartes cachées marquées « masquee »
   const PUBLIQUE = !!document.querySelector('meta[name="galerie"][content="publique"]');
@@ -120,7 +119,7 @@
 
   const h = document.createElement('h2'); h.textContent = 'Booster et verso'; h.id = 'titreVerso';
   const g = document.createElement('div'); g.className = 'grille'; g.id = 'grilleVerso';
-  g.append(incliner(booster({ largeur, nomJeu: d.nomJeu, nbCartes: d.cartesParBooster })), incliner(verso({ largeur, nomJeu: d.nomJeu })));
+  g.append(booster({ largeur, nomJeu: d.nomJeu, nbCartes: d.cartesParBooster }), verso({ largeur, nomJeu: d.nomJeu }));
   contenu.append(h, g);
 
   // Une section par rareté ; les cartes secrètes (bonus de famille, jamais tirées, rareté « Secrète ») juste au-dessus des Légendaires ;
@@ -156,7 +155,6 @@
       }
       const vue = moi?.cartes[c.id] && moi.s.has(c.id) ? { ...c, versionS: true } : c; // sa version S remplace la carte de base
       const r = recto(vue, { largeur, total });
-      incliner(r); // inclinaison 3D au survol de la souris
       if (c.masquee) r.classList.add('carte-masquee');
       else {
         r.classList.add('agrandissable');

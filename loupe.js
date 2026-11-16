@@ -1,7 +1,7 @@
 // Loupe : clic sur une carte → elle s'agrandit au centre de l'écran (redessinée en grand, pas étirée) ;
 // clic n'importe où ou Échap → elle retourne à sa place. Utilisée par la galerie et l'overlay (OBS : clic droit sur la source → Interagir).
 import { recto } from './carte.js';
-import { incliner } from './inclinaison.js';
+import { incliner, poser } from './inclinaison.js';
 import { boutons, menuClicDroit } from './copie.js';
 
 let ouverte = null; // { fond, carte, depuis }
@@ -17,7 +17,7 @@ function trajet(carte, depuis) {
  *  quandFerme = appelée quand elle se referme (pas quand une autre carte la remplace) ;
  *  etiquettes = pastilles de l'overlay reprises sur la carte agrandie : [{ texte, genre, bas }]
  *  (genre : nouvelle, doublon, evolution, bonus, secrete ; bas : sous la carte au lieu du haut). */
-export function agrandir(donnees, depuis, { total = null, quandFerme = null, etiquettes = [], copie = false } = {}) {
+export function agrandir(donnees, depuis, { total = null, quandFerme = null, etiquettes = [], copie = false, quandIncline = null } = {}) {
   if (ouverte) { ouverte.fond.remove(); ouverte = null; }
   // Galerie (copie) : boutons Partager / Copier / Enregistrer sous la carte, si son image existe
   const actions = copie ? boutons(donnees) : null;
@@ -27,7 +27,7 @@ export function agrandir(donnees, depuis, { total = null, quandFerme = null, eti
   // La carte et sa pastille bougent ensemble (une seule boîte animée)
   const carte = document.createElement('div'); carte.className = 'loupe-boite';
   const r = recto(donnees, { largeur, total });
-  incliner(r, { tactile: true });
+  incliner(r, { quandBouge: quandIncline }); // inclinaison 3D (overlay : reproduite dans OBS via quandIncline)
   if (copie) menuClicDroit(r, donnees);
   carte.appendChild(r);
   for (const { texte, genre, bas } of etiquettes) {
@@ -44,6 +44,12 @@ export function agrandir(donnees, depuis, { total = null, quandFerme = null, eti
     { duration: 380, easing: 'cubic-bezier(.2,.9,.3,1.1)' });
   fond.onclick = () => fermer();
   ouverte = { fond, carte, depuis, quandFerme };
+}
+
+/** Penche la carte agrandie vers (x, y), de 0 à 1 (null = à plat) : inclinaison reçue d'un autre overlay. */
+export function inclinerLoupe(x, y) {
+  const c = ouverte?.carte.querySelector('.inclinable');
+  if (c) poser(c, x, y);
 }
 
 /** Referme la carte agrandie (tout de suite si immediat, sinon elle retourne à sa place). */

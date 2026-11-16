@@ -369,16 +369,15 @@
 .loupe-etiquette.secrete { color:#f5d27a; background:#0a0806; border:2px solid #f5d27a; letter-spacing:.04em;
   box-shadow:0 2px 8px rgba(0,0,0,.5), 0 0 12px rgba(245,210,122,.5); }
 
-/* ===== Inclinaison 3D (inclinaison.js) : la carte penche vers le pointeur, un reflet le suit ===== */
+/* ===== Inclinaison 3D de la carte agrandie (inclinaison.js) : elle penche vers le pointeur, un reflet très discret le suit ===== */
 .inclinable { transform:perspective(calc(var(--w, 300px) * 3)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition:transform .6s cubic-bezier(.2,.8,.3,1); }
 .inclinable.inclinee { transition:transform .1s ease-out; will-change:transform; }
-.loupe .inclinable { touch-action:none; } /* le doigt incline la carte agrandie (la page ne défile pas) */
+.inclinable { touch-action:none; } /* le doigt incline la carte agrandie (la page ne défile pas) */
 .reflet-3d { position:absolute; inset:0; z-index:8; pointer-events:none; border-radius:inherit; opacity:0; transition:opacity .5s;
-  background:radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.38), rgba(255,255,255,.1) 30%, transparent 62%);
+  background:radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.1), rgba(255,255,255,.03) 30%, transparent 60%);
   mix-blend-mode:screen; }
 .inclinee > .reflet-3d { opacity:1; transition:opacity .2s; }
-.paquet > .reflet-3d { display:none; } /* booster : forme découpée, pas de reflet rectangulaire */
 
 /* ===== Copier / enregistrer / partager une carte (copie.js) ===== */
 .copie-boutons { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; cursor:default; }
