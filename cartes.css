@@ -293,7 +293,104 @@
                          background:linear-gradient(100deg,transparent,rgba(255,240,200,.35),transparent); animation:carte-balayage 3s ease-in-out infinite; }
 
 /* Loupe (loupe.js) : carte agrandie au centre de l'écran, sur un fond assombri */
-.loupe { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; cursor:zoom-out;
+.loupe { position:fixed; inset:0; z-index:1000; display:flex; flex-direction:column; gap:18px; align-items:center; justify-content:center; cursor:zoom-out;
          background:radial-gradient(ellipse at 50% 50%,rgba(20,12,40,.75),rgba(5,3,10,.92)); }
 .loupe .carte { box-shadow:0 1em 4em rgba(0,0,0,.7); }
 .agrandissable { cursor:zoom-in; }
+
+/* ===== Version S : évolution d'une carte (recto(carte, { s: true }) ; jamais pour l'Unique ni les secrètes) =====
+   Plein cadre (l'illustration remplit la carte, la bordure garde la rareté), titre sans bandeau, texture gravée visible
+   sous le reflet, voile arc-en-ciel qui défile, cartouche à la couleur de la rareté, logo S identique pour toutes. */
+.carte.s { box-shadow:0 .6em 2em rgba(0,0,0,.55), 0 0 1.4em rgba(170,140,255,.55), 0 0 .3em rgba(255,255,255,.6); }
+.carte.s .in { background:#000 !important; }
+/* Voile : un grand calque qui glisse d'une période entière du dégradé (20em dans l'axe 125°). Un dégradé diagonal
+   répété en tuiles (background-position) ferait des rectangles. */
+.carte.s .in::after { content:""; position:absolute; left:-150%; top:-150%; width:400%; height:400%; z-index:4; pointer-events:none;
+  background:repeating-linear-gradient(125deg, rgba(255,0,150,.22) 0, rgba(255,200,0,.18) 4em, rgba(0,255,170,.2) 8em, rgba(0,160,255,.22) 12em, rgba(190,0,255,.22) 16em, rgba(255,0,150,.22) 20em);
+  mix-blend-mode:color-dodge; opacity:.7; animation:s-voile 7s linear infinite; }
+@keyframes s-voile { from { transform:translate(-16.38em,-11.47em); } to { transform:translate(0,0); } }
+.carte.s .img { position:absolute !important; inset:0; aspect-ratio:auto; border:0 !important; border-radius:inherit; z-index:1 !important; box-shadow:none !important; }
+.carte.s .img img { object-position:50% 30%; }
+.carte.s .balayage-img, .carte.s .etoiles { display:none; }
+.carte.s .s-espace { flex:1; }
+/* Titre : directement sur l'illustration. L'ombre floue est sur le bloc (le nom est rogné à sa boîte pour la mesure
+   du titre : une ombre floue y ferait un rectangle) ; la marge intérieure laisse la place du contour. */
+.carte.s .haut { background:none !important; border:0 !important; backdrop-filter:none; padding:.35em .3em .1em .75em; gap:.3em;
+  filter:drop-shadow(0 .12em .3em rgba(0,0,0,.75)); }
+.carte.s .nom { color:#fff !important; letter-spacing:.01em; padding:.08em .14em; margin-left:-.14em;
+  -webkit-text-stroke:.14em #140c26; paint-order:stroke fill; text-shadow:0 .08em 0 #140c26 !important; }
+.carte.s .s-logo { flex:none; position:relative; z-index:6; line-height:1; margin:0 .3em 0 .2em; padding:0 .1em;
+  font-family:"Barlow Condensed", system-ui, sans-serif; font-style:italic; font-weight:900; font-size:2.6em;
+  background:linear-gradient(100deg,#fff 0%,#c9ced6 22%,#ff9be6 38%,#9be7ff 52%,#e9ffa0 64%,#c9ced6 78%,#fff 100%);
+  background-size:250% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  -webkit-text-stroke:.06em #23202b; paint-order:stroke fill; filter:drop-shadow(0 .05em 0 #000); animation:s-reflet 3.5s linear infinite; }
+@keyframes s-reflet { to { background-position:-250% 0; } }
+/* Famille : sortie de l'image, en pastille juste au-dessus de la description */
+.carte.s .in > .famille { position:static; align-self:flex-start; margin:0 0 -.1em .35em; z-index:3;
+  font-size:.6em; background:rgba(12,8,24,.6); color:#fff; border:1px solid rgba(255,255,255,.35); }
+.carte.s .in > .desc, .carte.s .in > .vide { flex:none; height:4.4em; margin:0 .35em; }
+.carte.s .desc { background:rgba(12,8,24,.55) !important; border:1px solid rgba(255,255,255,.35) !important; backdrop-filter:blur(3px);
+  color:#fff !important; text-shadow:0 1px 2px #000; }
+.carte.s .bas { background:rgba(12,8,24,.55); border-radius:.6em; padding:.35em .6em; margin:0 .35em .25em; color:#fff !important; text-shadow:0 1px 2px #000 !important; }
+/* Texture gravée : motif ✦ et fines lignes, visible seulement sous le reflet qui passe */
+.carte.s .s-grave { position:absolute; inset:0; z-index:3; pointer-events:none; border-radius:inherit;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 4 L15.6 12.4 L24 14 L15.6 15.6 L14 24 L12.4 15.6 L4 14 L12.4 12.4Z' fill='white'/%3E%3C/svg%3E") 0 0 / 1.6em 1.6em,
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.55) 0 .05em, transparent .05em .4em);
+  mix-blend-mode:overlay; opacity:.95;
+  -webkit-mask-image:linear-gradient(110deg, transparent 38%, #000 50%, transparent 62%); mask-image:linear-gradient(110deg, transparent 38%, #000 50%, transparent 62%);
+  -webkit-mask-size:300% 100%; mask-size:300% 100%; animation:s-graver 4.5s ease-in-out infinite; }
+@keyframes s-graver { from { -webkit-mask-position:100% 0; mask-position:100% 0; } to { -webkit-mask-position:-50% 0; mask-position:-50% 0; } }
+/* Cartouche de rareté à la couleur de la rareté, sans contour ; Légendaire : le dégradé néon du fond, qui tourne sur place
+   (--l1 à --l5 ne s'héritent pas : l'animation des teintes est reprise sur la cartouche) */
+.carte.s .pastille { border:0; text-shadow:none !important; }
+.carte.s.r-commune .pastille { background:linear-gradient(135deg,#f0c48a,#c07a3a) !important; color:#2a1606 !important; box-shadow:0 0 .5em rgba(224,163,92,.7); }
+.carte.s.r-peu-commune .pastille { background:linear-gradient(135deg,#f8fafc,#a9b4c2) !important; color:#23292f !important; box-shadow:0 0 .5em rgba(220,228,238,.7); }
+.carte.s.r-rare .pastille { background:linear-gradient(135deg,#fff1a8,#ffc81f,#e09a00) !important; color:#3b2503 !important; box-shadow:0 0 .6em rgba(255,210,63,.8); }
+.carte.s.r-epique .pastille { background:linear-gradient(135deg,#e6fbff,#7fd8ff,#3aa8e8) !important; color:#06304f !important; box-shadow:0 0 .6em rgba(127,216,255,.85); }
+.carte.s.r-legendaire .pastille { background:linear-gradient(135deg,var(--l1) 0%,var(--l2) 25%,var(--l3) 50%,var(--l4) 75%,var(--l5) 100%) !important; color:#fff !important;
+  animation:neon-teintes 18s linear infinite; text-shadow:0 1px 2px rgba(0,0,0,.75) !important; box-shadow:0 0 .6em rgba(255,43,214,.7); }
+
+/* Loupe : pastilles de l'overlay reprises sur la carte agrandie (mêmes couleurs que dans overlay.html) :
+   en haut « NEW ! », « ×2 », « ÉVOLUTION S ! » ; en bas « 🍀 Bonus », « ✨ Secrète » */
+.loupe-boite { position:relative; }
+.loupe-etiquette { position:absolute; top:-1.1em; left:50%; translate:-50% 0; z-index:5; padding:.25em 1em; border-radius:2em;
+  font:900 clamp(16px, 2.6vh, 30px)/1.2 system-ui, sans-serif; letter-spacing:.08em; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+.loupe-etiquette.bas { top:auto; bottom:-1.1em; }
+.loupe-etiquette.nouvelle { color:#1b1306; background:linear-gradient(180deg,#fff1c2,#f5d27a 50%,#c79a3a);
+  border:2px solid #6e4c14; box-shadow:0 2px 8px rgba(0,0,0,.5), 0 0 12px rgba(245,210,122,.6); }
+.loupe-etiquette.doublon { color:#e8e0f7; background:#2a2238; border:2px solid #6b5a8e; }
+.loupe-etiquette.evolution { color:#fff; font-style:italic; border:2px solid #fff;
+  -webkit-text-stroke:.5px #140c26; text-shadow:0 1px 2px #140c26, 0 0 6px rgba(20,12,38,.6);
+  background:linear-gradient(100deg,#ff2bd6,#ff8a00,#ffe600,#2bff88,#00d4ff,#8a2bff,#ff2bd6) 0 0 / 200% 100%;
+  box-shadow:0 0 16px rgba(255,43,214,.85), 0 0 28px rgba(0,212,255,.5), 0 2px 8px rgba(0,0,0,.5); animation:loupe-etiquette 2.5s linear infinite; }
+@keyframes loupe-etiquette { to { background-position:-200% 0; } }
+.loupe-etiquette.bonus { color:#06210f; background:linear-gradient(180deg,#d9ffcf,#6fe08a); border:2px solid #1d6b35; letter-spacing:.04em; }
+.loupe-etiquette.secrete { color:#f5d27a; background:#0a0806; border:2px solid #f5d27a; letter-spacing:.04em;
+  box-shadow:0 2px 8px rgba(0,0,0,.5), 0 0 12px rgba(245,210,122,.5); }
+
+/* ===== Inclinaison 3D (inclinaison.js) : la carte penche vers le pointeur, un reflet le suit ===== */
+.inclinable { transform:perspective(calc(var(--w, 300px) * 3)) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:transform .6s cubic-bezier(.2,.8,.3,1); }
+.inclinable.inclinee { transition:transform .1s ease-out; will-change:transform; }
+.loupe .inclinable { touch-action:none; } /* le doigt incline la carte agrandie (la page ne défile pas) */
+.reflet-3d { position:absolute; inset:0; z-index:8; pointer-events:none; border-radius:inherit; opacity:0; transition:opacity .5s;
+  background:radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.38), rgba(255,255,255,.1) 30%, transparent 62%);
+  mix-blend-mode:screen; }
+.inclinee > .reflet-3d { opacity:1; transition:opacity .2s; }
+.paquet > .reflet-3d { display:none; } /* booster : forme découpée, pas de reflet rectangulaire */
+
+/* ===== Copier / enregistrer / partager une carte (copie.js) ===== */
+.copie-boutons { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; cursor:default; }
+.copie-boutons button, .copie-menu button { font:600 15px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; color:#f3eefc; cursor:pointer; }
+.copie-boutons button { background:rgba(53,44,74,.92); border:1px solid #5b4d7a; border-radius:22px; padding:10px 18px; }
+.copie-boutons button:hover { background:#4a3d68; }
+.copie-menu { position:fixed; z-index:1100; display:flex; flex-direction:column; min-width:200px; padding:5px;
+  background:#1f1a2c; border:1px solid #4a3d68; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.6); }
+.copie-menu button { background:none; border:0; border-radius:7px; padding:9px 12px; text-align:left; }
+.copie-menu button:hover { background:#352c4a; }
+.copie-message { position:fixed; left:50%; bottom:28px; z-index:1200; translate:-50% 20px; opacity:0; pointer-events:none;
+  background:#2b2340; color:#f3eefc; border:1px solid #6b5a8e; border-radius:22px; padding:10px 20px;
+  font:600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow:0 6px 20px rgba(0,0,0,.5); transition:opacity .25s, translate .25s; }
+.copie-message.visible { opacity:1; translate:-50% 0; }
+.copie-message.erreur { border-color:#a3445a; }

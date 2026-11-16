@@ -45,17 +45,19 @@ function ciel(nb, eclats, teintes = NACRE, tailleEclat = 1.4) {
 
 // Titre : la plus grande taille (1.25em au plus, .8em au moins) qui tient sur une ligne ; sinon deux lignes.
 // Recalculé quand la carte est affichée ou change de taille, et une fois la police chargée.
-const TITRE_MAX = 1.25, TITRE_MIN = .8;
+// Version S : titre plus grand (il est écrit directement sur l'illustration).
+const TITRE_MAX = 1.25, TITRE_MIN = .8, TITRE_MAX_S = 1.75, TITRE_MIN_S = 1.1;
 const observateur = typeof ResizeObserver === 'undefined' ? null
   : new ResizeObserver(entrees => entrees.forEach(e => (e.target.classList.contains('desc') ? calerDescription : calerTitre)(e.target)));
 function calerTitre(nom) {
   if (!nom.clientWidth) return;
+  const s = !!nom.closest('.carte.s'), MAX = s ? TITRE_MAX_S : TITRE_MAX, MIN = s ? TITRE_MIN_S : TITRE_MIN;
   nom.classList.remove('deux-lignes');
-  nom.style.fontSize = TITRE_MAX + 'em';
+  nom.style.fontSize = MAX + 'em';
   if (nom.scrollWidth <= nom.clientWidth) return;
-  let t = Math.max(TITRE_MIN, Math.floor(TITRE_MAX * nom.clientWidth / nom.scrollWidth * 100) / 100);
+  let t = Math.max(MIN, Math.floor(MAX * nom.clientWidth / nom.scrollWidth * 100) / 100);
   nom.style.fontSize = t + 'em';
-  while (nom.scrollWidth > nom.clientWidth && t > TITRE_MIN) { t = Math.round((t - .01) * 100) / 100; nom.style.fontSize = t + 'em'; }
+  while (nom.scrollWidth > nom.clientWidth && t > MIN) { t = Math.round((t - .01) * 100) / 100; nom.style.fontSize = t + 'em'; }
   if (nom.scrollWidth > nom.clientWidth) nom.classList.add('deux-lignes');
 }
 function ajusterTitre(nom) {
@@ -74,11 +76,15 @@ function calerDescription(desc) {
   desc.classList.toggle('reduite', t < DESC_MAX);
 }
 
-/** Recto. total = nombre de cartes de la saison (pour « 12/32 »). */
-export function recto(carte, { largeur = 300, total = null } = {}) {
+/** Une carte peut-elle exister en version S ? (ni l'Unique, ni les secrètes) */
+export const peutEtreS = carte => carte.rarete !== 'Unique' && !carte.secrete;
+
+/** Recto. total = nombre de cartes de la saison (pour « 12/32 ») ; s = version S (évolution), aussi demandée par carte.versionS. */
+export function recto(carte, { largeur = 300, total = null, s = carte.versionS } = {}) {
   const unique = carte.rarete === 'Unique';
   const secrete = !!carte.secrete;
-  const c = el('div', `carte ${secrete ? 'r-secrete' : `${CLASSES[carte.rarete] || 'r-commune'}${unique ? '' : ' metal'}`}`);
+  s = !!s && peutEtreS(carte);
+  const c = el('div', `carte ${secrete ? 'r-secrete' : `${CLASSES[carte.rarete] || 'r-commune'}${unique ? '' : ' metal'}`}${s ? ' s' : ''}`);
   c.style.setProperty('--w', largeur + 'px');
   const inn = el('div', 'in');
   c.appendChild(inn);
@@ -95,6 +101,7 @@ export function recto(carte, { largeur = 300, total = null } = {}) {
   const haut = el('div', 'haut panneau');
   const nom = el('span', 'nom', carte.nom);
   haut.appendChild(nom);
+  if (s) haut.appendChild(el('span', 's-logo', 'S'));
   inn.appendChild(haut);
   ajusterTitre(nom);
 
@@ -116,10 +123,11 @@ export function recto(carte, { largeur = 300, total = null } = {}) {
     a.append(el('span', null, ICONES[carte.categorie] || '✦'), el('div', null, 'Visuel à venir'));
     img.appendChild(a);
   }
-  if (carte.famille) {
-    img.appendChild(el('div', 'famille', `${carte.familleEmoji || '✦'} ${carte.famille} · ${carte.secrete ? 'secrète' : `${carte.familleRang}/${carte.familleTotal}`}`));
-  }
+  const famille = !carte.famille ? null : el('div', 'famille', `${carte.familleEmoji || '✦'} ${carte.famille} · ${carte.secrete ? 'secrète' : `${carte.familleRang}/${carte.familleTotal}`}`);
   inn.appendChild(img);
+  // Version S : l'illustration remplit la carte ; la famille quitte l'image pour se poser au-dessus de la description
+  if (s) { inn.appendChild(el('div', 's-espace')); if (famille) inn.appendChild(famille); }
+  else if (famille) img.appendChild(famille);
 
   if (carte.description) {
     const desc = el('div', 'desc panneau', carte.description);
@@ -130,8 +138,9 @@ export function recto(carte, { largeur = 300, total = null } = {}) {
 
   const bas = el('div', 'bas');
   bas.append(el('span', 'categorie', carte.categorie), el('span', 'pastille', secrete ? 'Secrète' : carte.rarete),
-             el('span', null, carte.rarete === 'Unique' ? 'Exemplaire unique' : carte.secrete ? 'Secrète' : `${carte.numero}${total ? '/' + total : ''}`));
+             el('span', null, carte.rarete === 'Unique' ? 'Exemplaire unique' : carte.secrete ? 'Secrète' : `${s ? 'S ' : ''}${carte.numero}${total ? '/' + total : ''}`));
   inn.appendChild(bas);
+  if (s) inn.appendChild(el('div', 's-grave'));
 
   // Comme dans MVP : reflet fixe sur le métal, balayage animé réservé aux cartes « brillantes »
   if (carte.rarete === 'Peu commune') inn.appendChild(el('div', 'reflet'));

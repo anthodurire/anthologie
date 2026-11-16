@@ -55,7 +55,7 @@
   <div class="filtres" id="filtres">
     <input id="fJoueur" list="joueurs" placeholder="Pseudo Twitch" aria-label="Voir la collection d'un joueur" autocomplete="off">
     <datalist id="joueurs"></datalist>
-    <select id="fPossede" aria-label="Cartes possédées" hidden><option value="">Ses cartes</option><option value="non">Cartes manquantes</option><option value="toutes">Toutes les cartes</option></select>
+    <select id="fPossede" aria-label="Cartes possédées" hidden><option value="">Ses cartes</option><option value="s">Ses cartes S</option><option value="non">Cartes manquantes</option><option value="toutes">Toutes les cartes</option></select>
     <select id="fDecouverte" aria-label="Cartes découvertes" hidden><option value="">Découvertes ou non</option><option value="oui">Cartes découvertes</option><option value="non">À découvrir</option></select>
     <select id="fCategorie" aria-label="Catégorie"></select>
     <select id="fRarete" aria-label="Rareté"></select>
@@ -70,6 +70,8 @@
 <script type="module">
   import { recto, verso, booster } from './carte.js';
   import { agrandir } from './loupe.js';
+  import { incliner } from './inclinaison.js';
+  import { menuClicDroit } from './copie.js';
   // Galerie publique (galerie-publique.mjs) : données figées dans cartes.json, cartes cachées marquées « masquee »
   const PUBLIQUE = !!document.querySelector('meta[name="galerie"][content="publique"]');
   if (PUBLIQUE) document.body.classList.add('publique');
@@ -90,21 +92,25 @@
   }
   const largeur = Math.min(Number(params.get('largeur')) || 240, innerWidth - 32);
   // ?joueur=pseudo : la collection d'un joueur (ses cartes en couleur, les autres éteintes), d'après « possesseurs »
-  const joueurs = new Map(); // pseudo en minuscules → { pseudo, cartes: { id: exemplaires } }
+  // La galerie générale ne montre que les cartes de base ; dans la collection d'un joueur, une carte qu'il a fait
+  // évoluer est affichée en version S (« versionsS » : qui a la version S de chaque carte)
+  const joueurs = new Map(); // pseudo en minuscules → { pseudo, cartes: { id: exemplaires }, s: Set des cartes en version S }
   for (const [id, l] of Object.entries(d.possesseurs || {})) for (const [p, n] of l) {
-    if (!joueurs.has(p.toLowerCase())) joueurs.set(p.toLowerCase(), { pseudo: p, cartes: {} });
+    if (!joueurs.has(p.toLowerCase())) joueurs.set(p.toLowerCase(), { pseudo: p, cartes: {}, s: new Set() });
     joueurs.get(p.toLowerCase()).cartes[id] = n;
   }
+  for (const [id, l] of Object.entries(d.versionsS || {})) for (const p of l) joueurs.get(p.toLowerCase())?.s.add(id);
   const nbMasquees = d.cartes.filter(c => c.masquee).length; // galerie publique : cartes que personne n'a encore (« ??? »)
   const demande = (params.get('joueur') || '').trim().replace(/^@/, '');
-  const moi = demande ? joueurs.get(demande.toLowerCase()) || { pseudo: demande, cartes: {} } : null;
+  const moi = demande ? joueurs.get(demande.toLowerCase()) || { pseudo: demande, cartes: {}, s: new Set() } : null;
   const echapper = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   document.getElementById('titre').textContent = moi ? `${d.nomJeu} : collection de ${moi.pseudo}` : d.nomJeu;
   if (moi) document.title = `Collection de ${moi.pseudo}`;
   const nbMoi = moi ? d.cartes.filter(c => moi.cartes[c.id]).length : 0;
   const nbSecretes = moi ? (d.secretes || []).filter(c => moi.cartes[c.id]).length : 0;
+  const nbS = moi ? d.cartes.filter(c => moi.cartes[c.id] && moi.s.has(c.id)).length : 0;
   document.getElementById('resume').innerHTML = moi
-    ? (nbMoi ? `<b>${nbMoi} / ${d.cartes.length}</b> cartes` + (nbSecretes ? ` · 🏆 ${nbSecretes} carte${nbSecretes > 1 ? 's' : ''} secrète${nbSecretes > 1 ? 's' : ''}` : '')
+    ? (nbMoi ? `<b>${nbMoi} / ${d.cartes.length}</b> cartes` + (nbS ? ` · ✨ ${nbS} en version S` : '') + (nbSecretes ? ` · 🏆 ${nbSecretes} carte${nbSecretes > 1 ? 's' : ''} secrète${nbSecretes > 1 ? 's' : ''}` : '')
         : `${echapper(moi.pseudo)} n'a pas encore de carte (la galerie est mise à jour à la fin de chaque live)`)
       + ` · <a href="${location.pathname}">Toutes les cartes</a>`
     : `Saison ${d.saison} · ${d.cartes.length} cartes`
@@ -114,7 +120,7 @@
 
   const h = document.createElement('h2'); h.textContent = 'Booster et verso'; h.id = 'titreVerso';
   const g = document.createElement('div'); g.className = 'grille'; g.id = 'grilleVerso';
-  g.append(booster({ largeur, nomJeu: d.nomJeu, nbCartes: d.cartesParBooster }), verso({ largeur, nomJeu: d.nomJeu }));
+  g.append(incliner(booster({ largeur, nomJeu: d.nomJeu, nbCartes: d.cartesParBooster })), incliner(verso({ largeur, nomJeu: d.nomJeu })));
   contenu.append(h, g);
 
   // Une section par rareté ; les cartes secrètes (bonus de famille, jamais tirées, rareté « Secrète ») juste au-dessus des Légendaires ;
@@ -145,12 +151,19 @@
         const n = moi.cartes[c.id] || 0;
         e.classList.toggle('manquante', !n);
         b.className = 'possesseurs ' + (n ? 'possedee' : 'aucun');
-        b.textContent = n > 1 ? `✔ ×${n}` : n ? '✔ Possédée' : 'Manquante';
+        b.textContent = (n > 1 ? `✔ ×${n}` : n ? '✔ Possédée' : 'Manquante') + (n && moi.s.has(c.id) ? ' · ✨ version S' : '');
         b.removeAttribute('title'); b.onclick = null;
       }
-      const r = recto(c, { largeur, total });
+      const vue = moi?.cartes[c.id] && moi.s.has(c.id) ? { ...c, versionS: true } : c; // sa version S remplace la carte de base
+      const r = recto(vue, { largeur, total });
+      incliner(r); // inclinaison 3D au survol de la souris
       if (c.masquee) r.classList.add('carte-masquee');
-      else { r.classList.add('agrandissable'); r.onclick = () => agrandir(c, r, { total }); }
+      else {
+        r.classList.add('agrandissable');
+        const ouvrir = () => agrandir(vue, r, { total, copie: true });
+        r.onclick = ouvrir;
+        menuClicDroit(r, vue, { agrandir: ouvrir }); // clic droit : copier la carte entière (image faite d'avance)
+      }
       e.append(r, b, noms);
       grille.appendChild(e);
       return { c, e };
@@ -197,7 +210,7 @@
       && (!f.famille || (f.famille === '-' ? !c.famille : c.famille === f.famille))
       && (!f.visuel || (f.visuel === 'avec') === !!c.illustration)
       && (!f.decouverte || (f.decouverte === 'oui') === !c.masquee)
-      && (!moi || f.possede === 'toutes' || (f.possede === 'non') === !moi.cartes[c.id]);
+      && (!moi || f.possede === 'toutes' || (f.possede === 's' ? !!moi.cartes[c.id] && moi.s.has(c.id) : (f.possede === 'non') === !moi.cartes[c.id]));
     let n = 0;
     for (const s of sections) {
       let k = 0;
