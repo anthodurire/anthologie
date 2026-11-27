@@ -79,12 +79,13 @@ function calerDescription(desc) {
 /** Une carte peut-elle exister en version S ? (ni l'Unique, ni les secrètes) */
 export const peutEtreS = carte => carte.rarete !== 'Unique' && !carte.secrete;
 
-/** Recto. total = nombre de cartes de la saison (pour « 12/32 ») ; s = version S (évolution), aussi demandée par carte.versionS. */
-export function recto(carte, { largeur = 300, total = null, s = carte.versionS } = {}) {
+/** Recto. total = nombre de cartes de la saison (pour « 12/32 ») ; s = version S (évolution), aussi demandée par carte.versionS ;
+ *  signee = version Signée (le viewer a tiré la carte à son nom : liseré doré, signature, « Exemplaire original »), aussi carte.signee. */
+export function recto(carte, { largeur = 300, total = null, s = carte.versionS, signee = carte.signee } = {}) {
   const unique = carte.rarete === 'Unique';
   const secrete = !!carte.secrete;
   s = !!s && peutEtreS(carte);
-  const c = el('div', `carte ${secrete ? 'r-secrete' : `${CLASSES[carte.rarete] || 'r-commune'}${unique ? '' : ' metal'}`}${s ? ' s' : ''}`);
+  const c = el('div', `carte ${secrete ? 'r-secrete' : `${CLASSES[carte.rarete] || 'r-commune'}${unique ? '' : ' metal'}`}${s ? ' s' : ''}${signee ? ' signee' : ''}`);
   c.style.setProperty('--w', largeur + 'px');
   const inn = el('div', 'in');
   c.appendChild(inn);
@@ -141,6 +142,7 @@ export function recto(carte, { largeur = 300, total = null, s = carte.versionS }
              el('span', null, carte.rarete === 'Unique' ? 'Exemplaire unique' : carte.secrete ? 'Secrète' : `${carte.numero}${total ? '/' + total : ''}`));
   inn.appendChild(bas);
   if (s) inn.appendChild(el('div', 's-grave'));
+  if (signee) ajouterSignature(c, carte);
 
   // Comme dans MVP : reflet fixe sur le métal, balayage animé réservé aux cartes « brillantes »
   if (carte.rarete === 'Peu commune') inn.appendChild(el('div', 'reflet'));
@@ -148,6 +150,17 @@ export function recto(carte, { largeur = 300, total = null, s = carte.versionS }
   // Sur le métal, le balayage en « overlay » ne laisse aucune trace sur le noir : on le double sur l'image en « screen »,
   if (['Rare', 'Épique', 'Légendaire'].includes(carte.rarete)) img.appendChild(el('div', 'balayage-img'));
   return c;
+}
+
+/** Version Signée : signature manuscrite (le titre, c'est-à-dire le pseudo) sur l'illustration et tampon « Exemplaire original ».
+ *  Exportée pour l'overlay, qui la pose en direct pendant l'animation du miroir. */
+export function ajouterSignature(c, carte) {
+  c.classList.add('signee');
+  const inn = c.querySelector('.in');
+  if (inn.querySelector('.signature-carte')) return;
+  const zone = c.classList.contains('s') ? inn : inn.querySelector('.img');
+  zone.append(el('div', 'signature-carte', carte.nom), el('div', 'tampon-original', 'Exemplaire original'));
+  if (!c.querySelector(':scope > .lisere-signe')) c.appendChild(el('div', 'lisere-signe'));
 }
 
 /** Verso commun à toutes les cartes. */
@@ -164,8 +177,9 @@ export function verso({ largeur = 300, nomJeu = 'Cartes de la commu' } = {}) {
 }
 
 /** Booster : visuel du sachet (illustrations/booster-sachet.webp, « 5 cartes » écrit dans l'image).
- *  La languette (jusqu'aux pointillés) se détache à l'ouverture. nbCartes n'est plus affiché : refaire le visuel s'il change. */
-export function booster({ largeur = 300, nomJeu = 'Cartes de la commu' } = {}) {
+ *  La languette (jusqu'aux pointillés) se détache à l'ouverture. nbCartes n'est plus affiché : refaire le visuel s'il change.
+ *  visuel : autre sachet de même format (booster événement, ex. « booster-noel.webp » dans illustrations/). */
+export function booster({ largeur = 300, nomJeu = 'Cartes de la commu', visuel = null } = {}) {
   const p = el('div', 'paquet');
   p.style.setProperty('--w', largeur + 'px');
   p.setAttribute('role', 'img');
@@ -175,5 +189,10 @@ export function booster({ largeur = 300, nomJeu = 'Cartes de la commu' } = {}) {
   const corps = el('div', 'corps');
   corps.appendChild(el('div', 'lustre'));
   p.append(corps, lang);
+  if (visuel && /^[\w.-]+$/.test(visuel)) {
+    const url = `url(/illustrations/${visuel})`;
+    for (const x of [lang, corps]) x.style.backgroundImage = url;
+    for (const l of p.querySelectorAll('.lustre')) { l.style.webkitMaskImage = url; l.style.maskImage = url; }
+  }
   return p;
 }

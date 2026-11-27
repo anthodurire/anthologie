@@ -99,6 +99,8 @@
     joueurs.get(p.toLowerCase()).cartes[id] = n;
   }
   for (const [id, l] of Object.entries(d.versionsS || {})) for (const p of l) joueurs.get(p.toLowerCase())?.s.add(id);
+  // Version Signée : le joueur a tiré la carte à son nom (« signees » : qui a la version Signée de chaque carte)
+  for (const [id, l] of Object.entries(d.signees || {})) for (const p of l) { const j = joueurs.get(p.toLowerCase()); if (j) (j.signees ||= new Set()).add(id); }
   const nbMasquees = d.cartes.filter(c => c.masquee).length; // galerie publique : cartes que personne n'a encore (« ??? »)
   const demande = (params.get('joueur') || '').trim().replace(/^@/, '');
   const moi = demande ? joueurs.get(demande.toLowerCase()) || { pseudo: demande, cartes: {}, s: new Set() } : null;
@@ -150,10 +152,13 @@
         const n = moi.cartes[c.id] || 0;
         e.classList.toggle('manquante', !n);
         b.className = 'possesseurs ' + (n ? 'possedee' : 'aucun');
-        b.textContent = (n > 1 ? `✔ ×${n}` : n ? '✔ Possédée' : 'Manquante') + (n && moi.s.has(c.id) ? ' · ✨ version S' : '');
+        b.textContent = (n > 1 ? `✔ ×${n}` : n ? '✔ Possédée' : 'Manquante') + (n && moi.s.has(c.id) ? ' · ✨ version S' : '')
+          + (n && moi.signees?.has(c.id) ? ' · ✍️ signée' : '');
         b.removeAttribute('title'); b.onclick = null;
       }
-      const vue = moi?.cartes[c.id] && moi.s.has(c.id) ? { ...c, versionS: true } : c; // sa version S remplace la carte de base
+      // sa version S remplace la carte de base ; sa carte signée (à son nom) est montrée signée
+      const vue = moi?.cartes[c.id] && (moi.s.has(c.id) || moi.signees?.has(c.id))
+        ? { ...c, versionS: moi.s.has(c.id), signee: !!moi.signees?.has(c.id) } : c;
       const r = recto(vue, { largeur, total });
       if (c.masquee) r.classList.add('carte-masquee');
       else {

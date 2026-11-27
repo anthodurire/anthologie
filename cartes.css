@@ -1,7 +1,7 @@
 /* Rendu d'une carte (recto et verso). Toutes les tailles sont en em :
    --w fixe la largeur de la carte, la police suit (1em = largeur / 20). */
 /* Polices (Google Fonts) : signature du verso, titre des cartes (condensée : les noms longs tiennent sur une ligne) */
-@import url("https://fonts.googleapis.com/css2?family=Fondamento&family=Barlow+Condensed:wght@800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fondamento&family=Barlow+Condensed:wght@700;800;900&display=swap");
 @property --a { syntax:"<angle>"; inherits:false; initial-value:0deg; }
 
 .carte, .carte * { box-sizing:border-box; }
@@ -313,11 +313,13 @@
    en haut « NEW ! », « ×2 », « ÉVOLUTION S ! » ; en bas « 🍀 Bonus », « ✨ Secrète » */
 .loupe-boite { position:relative; }
 .loupe-etiquette { position:absolute; top:-1.1em; left:50%; translate:-50% 0; z-index:5; padding:.25em 1em; border-radius:2em;
-  font:900 clamp(16px, 2.6vh, 30px)/1.2 system-ui, sans-serif; letter-spacing:.08em; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+  font:800 clamp(18px, 2.9vh, 34px)/1.2 "Barlow Condensed", system-ui, sans-serif; letter-spacing:.08em; /* comme les pastilles de l'overlay */ white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,.5); }
 .loupe-etiquette.bas { top:auto; bottom:-1.1em; }
 .loupe-etiquette.nouvelle { color:#1b1306; background:linear-gradient(180deg,#fff1c2,#f5d27a 50%,#c79a3a);
   border:2px solid #6e4c14; box-shadow:0 2px 8px rgba(0,0,0,.5), 0 0 12px rgba(245,210,122,.6); }
-.loupe-etiquette.doublon { color:#e8e0f7; background:#2a2238; border:2px solid #6b5a8e; }
+.loupe-etiquette.doublon { color:#e8e0f7; background:#2a2238; border:2px solid #6b5a8e; box-shadow:0 2px 8px rgba(0,0,0,.5); }
+.loupe-etiquette.signee { color:#1b1306; font-style:italic; background:linear-gradient(180deg,#fffbe6,#f5d27a 45%,#b8862d); border:2px solid #fff3c4;
+  box-shadow:0 0 16px rgba(245,210,122,.95), 0 0 30px rgba(255,255,255,.45), 0 2px 8px rgba(0,0,0,.5); }
 .loupe-etiquette.evolution { color:#fff; font-style:italic; border:2px solid #fff;
   -webkit-text-stroke:.5px #140c26; text-shadow:0 1px 2px #140c26, 0 0 6px rgba(20,12,38,.6);
   background:linear-gradient(100deg,#ff2bd6,#ff8a00,#ffe600,#2bff88,#00d4ff,#8a2bff,#ff2bd6) 0 0 / 200% 100%;
@@ -351,3 +353,29 @@
   font:600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; box-shadow:0 6px 20px rgba(0,0,0,.5); transition:opacity .25s, translate .25s; }
 .copie-message.visible { opacity:1; translate:-50% 0; }
 .copie-message.erreur { border-color:#a3445a; }
+
+/* ---------- Version Signée : le viewer a tiré la carte à son nom ----------
+   Liseré doré autour de la carte, signature manuscrite (le pseudo) sur l'illustration, tampon « Exemplaire original » */
+.carte .lisere-signe { position:absolute; inset:0; z-index:8; pointer-events:none; border-radius:inherit;
+  /* filet sombre sous le liseré doré : il se détache même sur le cadre or des Rares */
+  box-shadow:inset 0 0 0 .14em #f5d27a, inset 0 0 0 .24em rgba(25,15,5,.85), inset 0 0 .9em rgba(255,226,140,.45),
+    0 0 0 .05em rgba(25,15,5,.9), 0 0 .9em rgba(245,210,122,.75); }
+/* Éclat de lumière qui fait le tour du liseré en boucle (anneau découpé par un masque, angle animé) */
+@property --angle-signe { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+.carte .lisere-signe::before { content:""; position:absolute; inset:0; border-radius:inherit; padding:.24em;
+  background:conic-gradient(from var(--angle-signe), transparent 0deg 270deg, rgba(255,236,170,.85) 315deg, #fff 340deg, #fff 350deg, transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter:drop-shadow(0 0 .3em #fff) drop-shadow(0 0 .7em #ffe9a8) drop-shadow(0 0 1.2em rgba(255,210,110,.9)); animation:tour-signe 3.5s linear infinite; }
+@keyframes tour-signe { to { --angle-signe:360deg; } }
+.carte .signature-carte { position:absolute; right:.45em; bottom:2.05em; z-index:6; max-width:92%; white-space:nowrap;
+  font-family:"Fondamento", cursive; font-size:1.55em; line-height:1.1; color:#ffe9a8; transform:rotate(-9deg); transform-origin:100% 100%;
+  text-shadow:0 .03em .05em rgba(40,25,5,.9), 0 0 .18em rgba(0,0,0,.55), 0 0 .4em rgba(245,210,122,.45); pointer-events:none; }
+/* Mention sous la signature, comme une dorure à chaud : petites capitales dorées, sans cadre */
+.carte .tampon-original { position:absolute; right:.6em; bottom:.45em; z-index:6; font-size:.42em; font-weight:800; letter-spacing:.22em;
+  text-transform:uppercase; white-space:nowrap; pointer-events:none;
+  background:linear-gradient(180deg,#fff6d0 10%,#f5d27a 50%,#b8862d 90%); -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 .06em .06em rgba(0,0,0,.85)) drop-shadow(0 0 .3em rgba(0,0,0,.5)); }
+.carte .tampon-original::before, .carte .tampon-original::after { content:"—"; margin:0 .35em; }
+.carte.s .signature-carte { bottom:9.4em; right:.7em; }
+.carte.s .tampon-original { bottom:27.5em; right:1.6em; }
